@@ -15,38 +15,18 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ============================================
-// ✅ CORS - COMPLETE FIX (204 Error Solution)
+// ✅ CORS - COMPLETE FIX (Allow All Origins)
 // ============================================
-const allowedOrigins = [
-  'https://4-pagefront.vercel.app',
-  'https://4-pagefront.netlify.app',
-  'http://localhost:5173',
-  'http://localhost:3000'
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-    } else {
-      console.log('❌ CORS blocked for:', origin);
-      callback(null, true); // Allow all in production (temporary fix)
-    }
-  },
+app.use(cors({
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
-  optionsSuccessStatus: 200,
-  preflightContinue: false
-};
+  optionsSuccessStatus: 200
+}));
 
-// Apply CORS
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
+// ✅ Handle preflight requests
+app.options('*', cors());
 
 // ============================================
 // MIDDLEWARE
@@ -131,7 +111,6 @@ mongoose.connect(MONGODB_URL, {
 })
 .then(() => {
   console.log('✅ MongoDB connected successfully');
-  console.log(`📊 Database: ${MONGODB_URL}`);
 })
 .catch(err => {
   console.error('❌ MongoDB connection error:', err.message);
@@ -145,7 +124,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API URL: http://localhost:${PORT}/api`);
   console.log(`🏥 Health: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 CORS enabled for: ${allowedOrigins.join(', ')}`);
+  console.log(`🔗 CORS: Enabled (All origins allowed)`);
 });
 
 // ============================================
