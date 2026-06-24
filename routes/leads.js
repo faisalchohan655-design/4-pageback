@@ -8,8 +8,10 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const leads = await Lead.find().sort({ createdAt: -1 });
+    console.log('📊 Sending leads:', leads.length);
     res.json(leads);
   } catch (error) {
+    console.error('❌ Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -18,59 +20,49 @@ router.get('/', async (req, res) => {
 router.post('/bulk', async (req, res) => {
   try {
     const { leads } = req.body;
+    
+    console.log('📝 Bulk save request:', leads?.length);
+
     if (!leads || !leads.length) {
       return res.status(400).json({ error: 'No leads provided' });
     }
 
     const saved = [];
-    const skipped = [];
 
     for (const lead of leads) {
-      try {
-        const existing = await Lead.findOne({
-          $or: [
-            { email: lead.email },
-            { phone: lead.phone }
-          ]
-        });
+      // Check duplicate
+      const existing = await Lead.findOne({
+        $or: [
+          { email: lead.email },
+          { phone: lead.phone }
+        ]
+      });
 
-        if (existing) {
-          skipped.push({ email: lead.email, reason: 'Duplicate' });
-          continue;
-        }
-
-        const newLead = new Lead({
-          name: lead.name || 'Unknown',
-          email: lead.email || '',
-          phone: lead.phone || '',
-          address: lead.address || '',
-          company: lead.company || '',
-          website: lead.website || '',
-          source: lead.source || 'manual',
-          platform: lead.platform || '',
-          rating: lead.rating || 0,
-          reviews: lead.reviews || 0,
-          placeId: lead.placeId || '',
-          verified: lead.verified || false,
-          categories: lead.categories || [],
-          coordinates: lead.coordinates || {},
-          status: lead.status || 'new'
-        });
-
-        await newLead.save();
-        saved.push(newLead);
-      } catch (err) {
-        skipped.push({ email: lead.email, reason: err.message });
+      if (existing) {
+        console.log('⏭️ Skipping duplicate:', lead.email || lead.phone);
+        continue;
       }
+
+      const newLead = new Lead({
+        name: lead.name || 'Unknown',
+        email: lead.email || '',
+        phone: lead.phone || '',
+        address: lead.address || '',
+        website: lead.website || '',
+        rating: lead.rating || 0,
+        reviews: lead.reviews || 0,
+        source: lead.source || 'google_maps'
+      });
+
+      await newLead.save();
+      saved.push(newLead);
+      console.log('✅ Saved:', newLead.name);
     }
 
-    res.json({
-      success: true,
-      saved: saved.length,
-      skipped: skipped.length,
-      savedLeads: saved
-    });
+    console.log('✅ Total saved:', saved.length);
+    res.json({ success: true, saved: saved.length, savedLeads: saved });
   } catch (error) {
+    console.error('❌ Bulk save error:', error);
     res.status(500).json({ error: error.message });
   }
 });
